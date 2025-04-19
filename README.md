@@ -3,12 +3,12 @@
 A full-stack TypeScript application for managing contacts.
 
 ### Backend Setup ```Bash
-      cd backend
+      cd solution/backend
       npm install
       npm start
 
 ### Frontend Setup ```Bash
-      cd frontend
+      cd solution/frontend
       npm install
       npm start
 
