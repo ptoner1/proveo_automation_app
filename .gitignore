@@ -1,0 +1,9 @@
+# Frontend
+solution/frontend/node_modules/
+solution/frontend/package-lock.json
+
+# Backend
+solution/backend/node_modules/
+solution/backend/package-lock.json
+solution/backend/.build/
+solution/backend/contacts.db

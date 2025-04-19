@@ -1,0 +1,27 @@
+{
+  "name": "backend2",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "cross-env SLS_DEBUG=* isLocal=true NODE_ENV=dev npm run build && serverless offline",
+    "build": "tsc",
+    "deploy": "serverless deploy"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "sqlite": "^5.0.3",
+    "sqlite3": "^5.1.6"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.119",
+    "@types/node": "^20.11.19",
+    "@types/sqlite3": "^3.1.8",
+    "cross-env": "^7.0.3",
+    "serverless": "^3.38.0",
+    "serverless-offline": "^13.3.3",
+    "typescript": "^5.3.3"
+  }
+}

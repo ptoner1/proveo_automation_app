@@ -1,0 +1,47 @@
+service: contact-manager
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  stage: dev
+  region: us-east-1
+
+plugins:
+  - serverless-offline
+
+custom:
+  serverless-offline:
+    httpPort: 3001
+
+functions:
+  getContacts:
+    handler: .build/src/index.getContacts
+    events:
+      - http:
+          path: contacts
+          method: get
+          cors: true
+
+  createContact:
+    handler: .build/src/index.createContact
+    events:
+      - http:
+          path: contacts
+          method: post
+          cors: true
+
+  updateContact:
+    handler: .build/src/index.updateContact
+    events:
+      - http:
+          path: contacts/{id}
+          method: put
+          cors: true
+
+  deleteContact:
+    handler: .build/src/index.deleteContact
+    events:
+      - http:
+          path: contacts/{id}
+          method: delete
+          cors: true 
