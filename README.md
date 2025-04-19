@@ -3,14 +3,14 @@
 A full-stack TypeScript application for managing contacts.
 
 ### Backend Setup ```Bash
-   cd backend
-   npm install
-   npm start
+      cd backend
+      npm install
+      npm start
 
 ### Frontend Setup ```Bash
-   cd frontend
-   npm install
-   npm start
+      cd frontend
+      npm install
+      npm start
 
 
 If the backend server is throwing errors that look like this:
