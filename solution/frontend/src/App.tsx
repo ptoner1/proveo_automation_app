@@ -22,6 +22,7 @@ function App() {
     age: 0
   });
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchContacts();
@@ -33,8 +34,60 @@ function App() {
     setContacts(data);
   };
 
+  const validateForm = () => {
+    Object.keys(formData).forEach(field => validateField(field, formData[field as keyof typeof formData]));
+    return Object.keys(errors).length === 0;
+  };
+
+  const validateField = (field: string, value: string | number) => {
+    const newErrors = { ...errors };
+    delete newErrors[field];
+
+    switch (field) {
+      case 'firstName':
+        if (!value.toString().trim()) {
+          newErrors.firstName = 'First name is required';
+        } else if (value.toString().length < 2) {
+          newErrors.firstName = 'First name must be at least 2 characters';
+        }
+        break;
+      case 'lastName':
+        if (!value.toString().trim()) {
+          newErrors.lastName = 'Last name is required';
+        } else if (value.toString().length < 2) {
+          newErrors.lastName = 'Last name must be at least 2 characters';
+        }
+        break;
+      case 'email':
+        if (!value.toString().trim()) {
+          newErrors.email = 'Email is required';
+        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.toString())) {
+          newErrors.email = 'Invalid email format';
+        }
+        break;
+      case 'phoneNumber':
+        if (!value.toString().trim()) {
+          newErrors.phoneNumber = 'Phone number is required';
+        } else if (!/^\+?[\d\s-]{10,}$/.test(value.toString())) {
+          newErrors.phoneNumber = 'Invalid phone number format';
+        }
+        break;
+      case 'age':
+        const age = Number(value);
+        if (age < 1) {
+          newErrors.age = 'Age must be at least 1';
+        } else if (age >= 130) {
+          newErrors.age = 'Are you trying to break social security? You have been reported to Elon\'s Doge.';
+        }
+        break;
+    }
+
+    setErrors(newErrors);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!validateForm()) return;
     if (editingId) {
       await fetch(`${API_URL}/${editingId}`, {
         method: 'PUT',
@@ -80,7 +133,12 @@ function App() {
               fullWidth
               label="First Name"
               value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, firstName: e.target.value });
+                validateField('firstName', e.target.value);
+              }}
+              error={!!errors.firstName}
+              helperText={errors.firstName}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -88,7 +146,12 @@ function App() {
               fullWidth
               label="Last Name"
               value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, lastName: e.target.value });
+                validateField('lastName', e.target.value);
+              }}
+              error={!!errors.lastName}
+              helperText={errors.lastName}
             />
           </Grid>
           <Grid item xs={12}>
@@ -96,7 +159,12 @@ function App() {
               fullWidth
               label="Email"
               value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, email: e.target.value });
+                validateField('email', e.target.value);
+              }}
+              error={!!errors.email}
+              helperText={errors.email}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -104,7 +172,12 @@ function App() {
               fullWidth
               label="Phone Number"
               value={formData.phoneNumber}
-              onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, phoneNumber: e.target.value });
+                validateField('phoneNumber', e.target.value);
+              }}
+              error={!!errors.phoneNumber}
+              helperText={errors.phoneNumber}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
@@ -113,7 +186,13 @@ function App() {
               label="Age"
               type="number"
               value={formData.age}
-              onChange={(e) => setFormData({ ...formData, age: parseInt(e.target.value) })}
+              onChange={(e) => {
+                const age = parseInt(e.target.value);
+                setFormData({ ...formData, age });
+                validateField('age', age);
+              }}
+              error={!!errors.age}
+              helperText={errors.age}
             />
           </Grid>
           <Grid item xs={12}>
