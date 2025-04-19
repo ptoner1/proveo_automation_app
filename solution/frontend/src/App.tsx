@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Typography, Card, CardContent, Button, TextField, Grid } from '@mui/material';
+import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 
 interface Contact {
   id: number;
@@ -12,17 +15,32 @@ interface Contact {
 
 const API_URL = 'http://localhost:3001/dev/contacts';
 
+const schema = yup.object().shape({
+  firstName: yup.string().required('First name is required').min(2, 'First name must be at least 2 characters'),
+  lastName: yup.string().required('Last name is required').min(2, 'Last name must be at least 2 characters'),
+  email: yup.string().required('Email is required').email('Invalid email format'),
+  phoneNumber: yup.string().required('Phone number is required').matches(/^\+?[\d\s-]{10,}$/, 'Invalid phone number format'),
+  age: yup.number().required('Age is required').min(1, 'Age must be at least 1').max(130, 'Are you trying to break social security? You have been reported to Elon\'s Doge.')
+});
+
+type FormData = yup.InferType<typeof schema>;
+
 function App() {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [formData, setFormData] = useState<Omit<Contact, 'id'>>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    age: 0
-  });
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const { control, handleSubmit, reset, setValue } = useForm<FormData>({
+    resolver: yupResolver(schema),
+    mode: 'onTouched',
+    reValidateMode: 'onChange',
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phoneNumber: '',
+      age: 0
+    }
+  });
 
   useEffect(() => {
     fetchContacts();
@@ -34,74 +52,21 @@ function App() {
     setContacts(data);
   };
 
-  const validateForm = () => {
-    Object.keys(formData).forEach(field => validateField(field, formData[field as keyof typeof formData]));
-    return Object.keys(errors).length === 0;
-  };
-
-  const validateField = (field: string, value: string | number) => {
-    const newErrors = { ...errors };
-    delete newErrors[field];
-
-    switch (field) {
-      case 'firstName':
-        if (!value.toString().trim()) {
-          newErrors.firstName = 'First name is required';
-        } else if (value.toString().length < 2) {
-          newErrors.firstName = 'First name must be at least 2 characters';
-        }
-        break;
-      case 'lastName':
-        if (!value.toString().trim()) {
-          newErrors.lastName = 'Last name is required';
-        } else if (value.toString().length < 2) {
-          newErrors.lastName = 'Last name must be at least 2 characters';
-        }
-        break;
-      case 'email':
-        if (!value.toString().trim()) {
-          newErrors.email = 'Email is required';
-        } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.toString())) {
-          newErrors.email = 'Invalid email format';
-        }
-        break;
-      case 'phoneNumber':
-        if (!value.toString().trim()) {
-          newErrors.phoneNumber = 'Phone number is required';
-        } else if (!/^\+?[\d\s-]{10,}$/.test(value.toString())) {
-          newErrors.phoneNumber = 'Invalid phone number format';
-        }
-        break;
-      case 'age':
-        const age = Number(value);
-        if (age < 1) {
-          newErrors.age = 'Age must be at least 1';
-        } else if (age >= 130) {
-          newErrors.age = 'Are you trying to break social security? You have been reported to Elon\'s Doge.';
-        }
-        break;
-    }
-
-    setErrors(newErrors);
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!validateForm()) return;
+  const onSubmit = async (data: FormData) => {
     if (editingId) {
       await fetch(`${API_URL}/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(data)
       });
     } else {
       await fetch(API_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
+        body: JSON.stringify(data)
       });
     }
-    setFormData({ firstName: '', lastName: '', email: '', phoneNumber: '', age: 0 });
+    reset();
     setEditingId(null);
     fetchContacts();
   };
@@ -112,12 +77,10 @@ function App() {
   };
 
   const handleEdit = (contact: Contact) => {
-    setFormData({
-      firstName: contact.firstName,
-      lastName: contact.lastName,
-      email: contact.email,
-      phoneNumber: contact.phoneNumber,
-      age: contact.age
+    Object.entries(contact).forEach(([key, value]) => {
+      if (key !== 'id') {
+        setValue(key as keyof FormData, value);
+      }
     });
     setEditingId(contact.id);
   };
@@ -126,73 +89,97 @@ function App() {
     <Container>
       <Typography variant="h3" style={{ margin: '20px 0' }}>Contact Manager</Typography>
       
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <Grid container spacing={2}>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="First Name"
-              value={formData.firstName}
-              onChange={(e) => {
-                setFormData({ ...formData, firstName: e.target.value });
-                validateField('firstName', e.target.value);
-              }}
-              error={!!errors.firstName}
-              helperText={errors.firstName}
+            <Controller
+              name="firstName"
+              control={control}
+              render={({ field: { onChange, onBlur, value, ref }, fieldState: { error } }) => (
+                <TextField
+                  fullWidth
+                  label="First Name"
+                  value={value}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  inputRef={ref}
+                  error={!!error}
+                  helperText={error?.message}
+                />
+              )}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Last Name"
-              value={formData.lastName}
-              onChange={(e) => {
-                setFormData({ ...formData, lastName: e.target.value });
-                validateField('lastName', e.target.value);
-              }}
-              error={!!errors.lastName}
-              helperText={errors.lastName}
+            <Controller
+              name="lastName"
+              control={control}
+              render={({ field: { onChange, onBlur, value, ref }, fieldState: { error } }) => (
+                <TextField
+                  fullWidth
+                  label="Last Name"
+                  value={value}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  inputRef={ref}
+                  error={!!error}
+                  helperText={error?.message}
+                />
+              )}
             />
           </Grid>
           <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Email"
-              value={formData.email}
-              onChange={(e) => {
-                setFormData({ ...formData, email: e.target.value });
-                validateField('email', e.target.value);
-              }}
-              error={!!errors.email}
-              helperText={errors.email}
+            <Controller
+              name="email"
+              control={control}
+              render={({ field: { onChange, onBlur, value, ref }, fieldState: { error } }) => (
+                <TextField
+                  fullWidth
+                  label="Email"
+                  value={value}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  inputRef={ref}
+                  error={!!error}
+                  helperText={error?.message}
+                />
+              )}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Phone Number"
-              value={formData.phoneNumber}
-              onChange={(e) => {
-                setFormData({ ...formData, phoneNumber: e.target.value });
-                validateField('phoneNumber', e.target.value);
-              }}
-              error={!!errors.phoneNumber}
-              helperText={errors.phoneNumber}
+            <Controller
+              name="phoneNumber"
+              control={control}
+              render={({ field: { onChange, onBlur, value, ref }, fieldState: { error } }) => (
+                <TextField
+                  fullWidth
+                  label="Phone Number"
+                  value={value}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  inputRef={ref}
+                  error={!!error}
+                  helperText={error?.message}
+                />
+              )}
             />
           </Grid>
           <Grid item xs={12} sm={6}>
-            <TextField
-              fullWidth
-              label="Age"
-              type="number"
-              value={formData.age}
-              onChange={(e) => {
-                const age = parseInt(e.target.value);
-                setFormData({ ...formData, age });
-                validateField('age', age);
-              }}
-              error={!!errors.age}
-              helperText={errors.age}
+            <Controller
+              name="age"
+              control={control}
+              render={({ field: { onChange, onBlur, value, ref }, fieldState: { error } }) => (
+                <TextField
+                  fullWidth
+                  label="Age"
+                  type="number"
+                  value={value}
+                  onChange={onChange}
+                  onBlur={onBlur}
+                  inputRef={ref}
+                  error={!!error}
+                  helperText={error?.message}
+                />
+              )}
             />
           </Grid>
           <Grid item xs={12}>
